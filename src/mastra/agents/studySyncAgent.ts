@@ -7,6 +7,7 @@ import { LibSQLStore } from "@mastra/libsql";
 export const studySyncAgent = new Agent({
   name: "studySyncAgent",
 
+  
   // ✅ Integrate your Gemini LLM configuration
   model: {
     name: "gemini-2.0-flash",

@@ -1,21 +1,29 @@
 {
   "name": "hng13_stage-3",
   "version": "1.0.0",
-  "description": "",
+  "description": "StudySync AI — A conversational study accountability partner built with Mastra and integrated with Telex.im",
   "type": "module",
   "scripts": {
-    "tess": "echo \"Error: no test specified\" && exit 1",
+    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "npx mastra dev",
     "build": "mastra build",
-    "start": "tsx src/server.ts",
+    "start": "node --import=./.mastra/output/instrumentation.mjs .mastra/output/index.mjs",
     "serve": "tsx src/server.ts"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/PaulsCreate/HNG13_Stage-3.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "mastra",
+    "telex",
+    "ai",
+    "agent",
+    "hng13",
+    "study",
+    "education"
+  ],
+  "author": "Paul",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/PaulsCreate/HNG13_Stage-3/issues"
@@ -36,14 +44,14 @@
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
-    "@types/jest": "^30.0.0",
     "@types/node": "^24.9.2",
+    "typescript": "^5.9.3",
+    "tsx": "^4.20.6",
+    "eslint": "^9.39.0",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
-    "eslint": "^9.39.0",
     "jest": "^30.2.0",
-    "prettier": "^3.6.2",
-    "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "@types/jest": "^30.0.0",
+    "prettier": "^3.6.2"
   }
 }
