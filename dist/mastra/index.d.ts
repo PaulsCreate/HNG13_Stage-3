@@ -1,0 +1,6 @@
+import "dotenv/config";
+import { Mastra } from "@mastra/core/mastra";
+export declare const mastra: Mastra<{
+    studySyncAgent: import("@mastra/core/agent").Agent<"studySyncAgent", import("@mastra/core/agent").ToolsInput, Record<string, import("@mastra/core/eval").Metric>>;
+}, Record<string, import("@mastra/core/workflows/legacy").LegacyWorkflow<import("@mastra/core/workflows/legacy").LegacyStep<string, any, any, import("@mastra/core/workflows/legacy").StepExecutionContext<any, import("@mastra/core/workflows/legacy").WorkflowContext<any, import("@mastra/core/workflows/legacy").LegacyStep<string, any, any, any>[], Record<string, any>>>>[], string, any, any>>, Record<string, import("@mastra/core/workflows").Workflow<any, any, any, any, any, any, any>>, Record<string, import("@mastra/core/vector").MastraVector<import("@mastra/core/vector/filter").VectorFilter>>, Record<string, import("@mastra/core/tts").MastraTTS>, import("@mastra/core/logger").IMastraLogger, Record<string, import("@mastra/core/mcp").MCPServerBase>, Record<string, import("@mastra/core/scores").MastraScorer<any, any, any, any>>>;
+//# sourceMappingURL=index.d.ts.map

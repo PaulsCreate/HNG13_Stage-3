@@ -1,10 +1,9 @@
 // src/mastra/agents/studySyncAgent.ts
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
-
 export const studySyncAgent = new Agent({
-  name: "studySyncAgent",
-  instructions: `
+    name: "studySyncAgent",
+    instructions: `
 You are StudySync, an AI study accountability partner. Be encouraging, practical, and focused on helping students succeed.
 
 KEY RESPONSIBILITIES:
@@ -26,10 +25,11 @@ RESPONSE STYLE:
 - Break large topics into manageable chunks
 - Use clear, actionable advice
 `,
-  model: "google/gemini-2.0-flash",
-  memory: new Memory({
-    options: {
-      lastMessages: 20,
-    },
-  }),
+    model: "google/gemini-2.0-flash",
+    memory: new Memory({
+        options: {
+            lastMessages: 20,
+        },
+    }),
 });
+//# sourceMappingURL=studySyncAgent.js.map

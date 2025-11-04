@@ -4,10 +4,11 @@
   "description": "StudySync AI — A conversational study accountability partner built with Mastra and integrated with Telex.im",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npx mastra dev",
-    "build": "mastra build",
-    "start": "npx tsx src/server.ts"
+     "dev": "npx tsx src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "clean": "rm -rf dist",
+    "test": "echo \"No tests yet\" && exit 0"
   },
   "repository": {
     "type": "git",
