@@ -18,13 +18,39 @@ app.get("/", (req, res) => {
   });
 });
 
+app.use(
+  cors({
+    origin: ["https://telex.im", "https://*.telex.im"],
+    credentials: true,
+  })
+);
+
+// Add health check specifically for Telex
+app.get("/telex-health", (req, res) => {
+  res.json({
+    status: "healthy",
+    service: "StudySync Agent",
+    telex_integration: "active",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Add webhook verification endpoint
+app.get("/.well-known/telex.json", (req, res) => {
+  res.json({
+    name: "StudySync AI",
+    description: "AI study accountability partner",
+    version: "1.0.0",
+  });
+});
+
 // 🎯 Main agent chat route - FIXED VERSION
 app.post("/a2a/agent/studySyncAgent", async (req, res) => {
   try {
     console.log("📥 Received request:", JSON.stringify(req.body, null, 2));
-    
+
     const { sender, text, message } = req.body;
-    
+
     // Handle different request formats (Telex sends 'message' object)
     const messageText = text || message?.text || "";
     const userName = sender?.name || "there";
@@ -38,14 +64,14 @@ app.post("/a2a/agent/studySyncAgent", async (req, res) => {
           type: "message",
           text: `Hey ${userName}! 👋 I'm StudySync — your AI study accountability partner. 
 I'm here to help you set realistic goals, stay focused, and celebrate your progress. 
-What's something you'd like to achieve today?`
-        }
+What's something you'd like to achieve today?`,
+        },
       });
     }
 
     // Get agent and generate response
     const agent = mastra.getAgent("studySyncAgent");
-    
+
     if (!agent) {
       throw new Error("StudySync agent not found");
     }
@@ -75,26 +101,29 @@ What's something you'd like to achieve today?`
         text: response.text,
       },
     });
-
   } catch (err: any) {
     console.error("❌ Agent Error:", err);
-    res.status(500).json({ 
+    res.status(500).json({
       status: "error",
       reply: {
         type: "message",
-        text: "I'm having trouble connecting right now. Please try again! 🔄"
-      }
+        text: "I'm having trouble connecting right now. Please try again! 🔄",
+      },
     });
   }
 });
 
 app.listen(PORT, () => {
   console.log(`🚀 StudySync API running on: http://localhost:${PORT}`);
-  console.log(`📡 A2A Endpoint: http://localhost:${PORT}/a2a/agent/studySyncAgent`);
+  console.log(
+    `📡 A2A Endpoint: http://localhost:${PORT}/a2a/agent/studySyncAgent`
+  );
 });
 
 //Add this to your server.ts temporarily
 console.log("🔧 Starting server...");
 console.log("📁 Current directory:", process.cwd());
-console.log("🔑 Gemini Key exists:", !!process.env.GOOGLE_GENERATIVE_AI_API_KEY);
-
+console.log(
+  "🔑 Gemini Key exists:",
+  !!process.env.GOOGLE_GENERATIVE_AI_API_KEY
+);
