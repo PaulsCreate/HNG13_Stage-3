@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "npx mastra dev",
     "build": "mastra build",
-    "start": "node --import=./.mastra/output/instrumentation.mjs .mastra/output/index.mjs",
+    "start": "tsx src/server.ts",
     "serve": "tsx src/server.ts"
   },
   "repository": {
@@ -52,6 +52,5 @@
     "@typescript-eslint/parser": "^8.46.2",
     "jest": "^30.2.0",
     "@types/jest": "^30.0.0",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2"}
   }
-}
