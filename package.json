@@ -4,11 +4,12 @@
   "description": "StudySync AI — A conversational study accountability partner built with Mastra and integrated with Telex.im",
   "type": "module",
   "scripts": {
-     "dev": "npx tsx src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
+    "dev": "mastra dev",
+    "build": "mastra build",
+    "start": "mastra start",
     "clean": "rm -rf dist",
-    "test": "echo \"No tests yet\" && exit 0"
+    "test": "echo \"No tests yet\" && exit 0",
+    "test:gemini": "tsx src/test-gemini.ts"
   },
   "repository": {
     "type": "git",
@@ -33,6 +34,7 @@
     "@google/generative-ai": "^0.24.1",
     "@mastra/core": "^0.23.3",
     "@mastra/libsql": "^0.16.1",
+    "@mastra/loggers": "^0.10.18",
     "@mastra/memory": "^0.15.10",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
@@ -44,13 +46,14 @@
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.9.2",
-    "typescript": "^5.9.3",
-    "tsx": "^4.20.6",
-    "eslint": "^9.39.0",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
+    "eslint": "^9.39.0",
     "jest": "^30.2.0",
-    "@types/jest": "^30.0.0",
-    "prettier": "^3.6.2"}
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
   }
+}
