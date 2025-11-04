@@ -1,116 +1,140 @@
-# StudySync Agent API
+# StudySync AI 🤖📚
 
-Welcome to StudySync — your AI-powered study accountability partner! This project provides a robust backend API for a conversational agent designed to help users set realistic goals, stay focused, and celebrate their progress.
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Mastra](https://img.shields.io/badge/powered_by-Mastra-7C3AED)
+![Gemini](https://img.shields.io/badge/LLM-Gemini_2.0_Flash-4285F4)
+![Telex](https://img.shields.io/badge/integration-Telex_A2A-00D4AA)
 
-![Health Check](https://img.shields.io/badge/API_Status-Running-green)
-![Framework](https://img.shields.io/badge/Framework-Mastra-blue)
-![Language](https://img.shields.io/badge/Language-TypeScript-blue)
+> Your AI-powered study accountability partner. Stay motivated, track progress, and achieve your learning goals with intelligent conversation and personalized support.
 
----
+## 🎯 What is StudySync?
 
-## ✨ Features
+StudySync is an intelligent AI study companion that helps learners maintain consistency, set realistic goals, and stay motivated throughout their educational journey. Built with **Mastra** and powered by **Google Gemini**, it provides contextual, memory-aware conversations tailored to each student's needs.
 
-- **Conversational AI Agent**: A smart, interactive agent powered by Google's Gemini model.
-- **Persistent Memory**: Remembers conversation history for each user, providing a personalized experience using LibSQL.
-- **Goal-Oriented Dialogue**: Designed to guide users through setting and achieving study goals.
-- **Scalable Architecture**: Built with Express.js and Mastra for a clean and maintainable structure.
-- **Easy Integration**: A simple RESTful API for seamless integration with any frontend application.
+### Key Features
+- **🎓 Personalized Study Planning** - Create adaptive study schedules based on your availability and goals
+- **📊 Progress Tracking** - Monitor learning milestones and celebrate achievements
+- **💡 Smart Techniques** - Get recommendations for proven study methods (Pomodoro, Active Recall, Spaced Repetition)
+- **🤝 Accountability Partner** - Daily check-ins and motivation to maintain consistency
+- **🧠 Contextual Memory** - Remembers your study history and preferences across conversations
 
-## 🛠️ Tech Stack
-
-- **Backend**: [Node.js](https://nodejs.org/), [Express.js](https://expressjs.com/)
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **AI Framework**: [Mastra](https://mastra.io/)
-- **LLM**: [Google Gemini](https://deepmind.google/technologies/gemini/)
-- **Database**: [LibSQL](https://turso.tech/libsql) (for agent memory)
-- **Environment Management**: [dotenv](https://www.npmjs.com/package/dotenv)
-
-## 🚀 Getting Started
-
-Follow these instructions to get a local copy up and running for development and testing.
+## 🚀 Quick Start
 
 ### Prerequisites
+- Node.js 18+ 
+- Google Gemini API key ([Get one here](https://aistudio.google.com/))
 
-- [Node.js](https://nodejs.org/en/download/) (v18 or later recommended)
-- [npm](https://www.npmjs.com/get-npm) or any other package manager
-
-### 1. Clone the Repository
+### Installation & Setup
 
 ```bash
-git clone <your-repository-url>
+# 1. Clone and setup
+git clone https://github.com/PaulsCreate/HNG13_Stage-3.git
 cd HNG13_Stage-3
-```
 
-### 2. Install Dependencies
-
-```bash
+# 2. Install dependencies
 npm install
-```
 
-### 3. Configure Environment Variables
-
-Create a `.env` file in the root of the project and add the following variables. You will need to obtain an API key from Google AI Studio.
-
-```env
-# .env
-
-# Server configuration
-PORT=4111
-
-# Google Gemini API Key
-GOOGLE_GENERATIVE_AI_API_KEY="your_google_api_key_here"
-```
-
-### 4. Run the Application
-
-Start the development server:
-
-```bash
+# 3. Configure environment
+# 4. Start development server
 npm run dev
-```
 
-The API will be available at `http://localhost:4111`.
+cp .env.example .env
+# Add your GOOGLE_GENERATIVE_AI_API_KEY to .env
 
-## 📡 API Endpoints
+Your API will be running at http://localhost:4111 🎉
 
-### Health Check
+🔌 API Integration
+Base URL
+https://telext.osc-fr1.scalingo.io  # Production
+http://localhost:4111               # Development
 
-- **Endpoint**: `GET /`
-- **Description**: Checks if the API is running.
-- **Success Response**:
-  ```json
-  {
-    "status": "StudySync Agent API is running ✅",
-    "message": "Welcome to StudySync — your AI study accountability partner!"
+## Chat Endpoint: 
+POST /a2a/agent/studySyncAgent
+Content-Type: application/json
+
+## Request: 
+{
+  "sender": {
+    "id": "user-123",
+    "name": "Student Name"
+  },
+  "text": "I need help studying for my computer science exam"
+}
+
+## Response:
+{
+  "status": "success",
+  "reply": {
+    "type": "message",
+    "text": "Hey there! 👋 Let's create a study plan for your computer science exam. What specific topics are you covering, and when is your exam date?"
   }
-  ```
+}
 
-### Chat with the Agent
-
-- **Endpoint**: `POST /a2a/agent/studySyncAgent`
-- **Description**: Send a message to the StudySync agent and get a response.
-- **Request Body**:
-  ```json
-  {
-    "sender": {
-      "id": "user-123",
-      "name": "Alex"
-    },
-    "text": "I want to prepare for my math exam."
-  }
-  ```
-- **Example `curl` Request**:
-  ```bash
-  curl -X POST http://localhost:4111/a2a/agent/studySyncAgent \
+Example Usage: 
+# Test with curl
+curl -X POST https://telext.osc-fr1.scalingo.io/a2a/agent/studySyncAgent \
   -H "Content-Type: application/json" \
   -d '{
-    "sender": { "id": "user-123", "name": "Alex" },
-    "text": "I want to prepare for my math exam."
+    "sender": {
+      "id": "test-user-001",
+      "name": "Alex"
+    },
+    "text": "Can you help me plan my study schedule?"
   }'
-  ```
-- **Success Response**:
-  ```json
-  {
-    "reply": "That's a great goal, Alex! To start, what specific topics in math will you be focusing on for the exam?"
-  }
-  ```
+
+#🏗️ Architecture
+StudySync AI Architecture:
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Telex.im      │───▶│   Express API    │───▶│   Mastra Agent  │
+│   (Frontend)    │    │   (Node.js/TS)   │    │   (Framework)   │
+└─────────────────┘    └──────────────────┘    └─────────┬───────┘
+                                                    │
+                                           ┌─────────▼──────────┐
+                                           │   Gemini 2.0 Flash │
+                                           │   (Google AI)      │
+                                           └───────────────────┘
+
+🛠️ Tech Stack
+Layer	Technology	Purpose
+Framework	Mastra	AI Agent Orchestration
+Language	TypeScript	Type Safety & Maintainability
+Runtime	Node.js + Express	API Server
+AI Model	Gemini 2.0 Flash	Natural Language Processing
+Memory	LibSQL	Persistent Conversation Storage
+Platform	Telex.im	Agent Deployment & Integration
+Deployment	Scalingo	Cloud Hosting
+
+📁 Project Structure
+HNG13_Stage-3/
+├── src/
+│   ├── server.ts              # Express server & API routes
+│   └── mastra/
+│       ├── index.ts           # Mastra configuration
+│       └── agents/
+│           └── studySyncAgent.ts  # AI agent definition
+├── package.json
+├── tsconfig.json
+└── .env.example
+
+🎮 Try StudySync Live!
+🌐 Production Agent:
+StudySync on Telex.im
+
+🔗 API Endpoint:
+https://telext.osc-fr1.scalingo.io/a2a/agent/studySyncAgent
+
+🚀 Deployment
+Build for Production
+bash
+npm run build
+Start Production Server
+bash
+npm start
+Environment Variables
+env
+GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_api_key
+PORT=4111
+NODE_ENV=production
+
+
+
