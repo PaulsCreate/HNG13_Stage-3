@@ -30,7 +30,7 @@ export const mastra = new Mastra({
   // Add model configurations here
   models: {
     "google/gemini-2.0-flash": {
-      apiKey: process.env.GOOGLE_API_KEY!,
+      apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
     },
   },
 });
