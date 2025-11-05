@@ -43,7 +43,7 @@ npm install
 # 3. Configure environment
 # 4. Start development server
 npm run dev
-
+```
 
 Live A2A Endpoint
 > https://study-agent-hng13.mastra.cloud/a2a/agent/studySyncAgent
@@ -193,8 +193,9 @@ Integration A2A Protocol Standardized agent communication
 Deployment Mastra Cloud Reliable Hosting
 
 ```text
-
-📁 Project Structure
+```
+## 📁 Project Structure
+```
 HNG13_Stage-3/
 ├── src/
 │   ├── agents/
