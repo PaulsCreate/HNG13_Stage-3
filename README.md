@@ -191,9 +191,10 @@ Tools Custom Study Tools Progress assessment, scheduling, tracking
 Memory LibSQL Persistent Conversation Storage
 Integration A2A Protocol Standardized agent communication
 Deployment Mastra Cloud Reliable Hosting
-📁 Project Structure
 
 ```text
+
+📁 Project Structure
 HNG13_Stage-3/
 ├── src/
 │   ├── agents/
