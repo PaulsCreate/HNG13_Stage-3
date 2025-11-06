@@ -12,6 +12,8 @@ export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
       const body = await c.req.json();
       const { jsonrpc, id: requestId, method, params } = body;
 
+      console.log("📨 Received A2A Request:", { agentId, method, params });
+
       // Validate JSON-RPC 2.0 format
       if (jsonrpc !== "2.0" || !requestId) {
         return c.json(
@@ -20,8 +22,22 @@ export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
             id: requestId || null,
             error: {
               code: -32600,
-              message:
-                'Invalid Request: jsonrpc must be "2.0" and id is required',
+              message: 'Invalid Request: jsonrpc must be "2.0" and id is required',
+            },
+          },
+          400
+        );
+      }
+
+      // Check if method is supported
+      if (method !== "message/send") {
+        return c.json(
+          {
+            jsonrpc: "2.0",
+            id: requestId,
+            error: {
+              code: -32601,
+              message: `Method not supported: ${method}. Only 'message/send' is supported.`,
             },
           },
           400
@@ -45,32 +61,80 @@ export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
 
       const agent = mastra.getAgent(agentId as "studySyncAgent");
 
-      // Extract messages from params
-      const { message, messages, contextId, taskId, metadata } = params || {};
+      // Extract messages from params - Telex structure is different
+      const { message, messages, contextId, taskId, configuration } = params || {};
+
+      console.log("🔍 Extracted params:", { message, messages, contextId, taskId });
 
       let messagesList: any[] = [];
+      
+      // Handle Telex message format
       if (message) {
         messagesList = [message];
       } else if (messages && Array.isArray(messages)) {
         messagesList = messages;
+      } else {
+        // If no messages found in expected locations, check the root level
+        if (params && typeof params === 'object') {
+          // Look for message parts in the params directly
+          const parts = [];
+          if (params.text) parts.push({ kind: "text", text: params.text });
+          if (params.parts && Array.isArray(params.parts)) parts.push(...params.parts);
+          
+          if (parts.length > 0) {
+            messagesList = [{
+              role: "user",
+              parts: parts,
+              messageId: randomUUID()
+            }];
+          }
+        }
       }
 
-      // Convert A2A messages to Mastra format
-      const mastraMessages = messagesList.map((msg: any) => ({
-        role: msg.role,
-        content:
-          msg.parts
-            ?.map((part: any) => {
-              if (part.kind === "text") return part.text;
-              if (part.kind === "data") return JSON.stringify(part.data);
-              return "";
-            })
-            .join("\n") || "",
-      }));
+      if (messagesList.length === 0) {
+        return c.json(
+          {
+            jsonrpc: "2.0",
+            id: requestId,
+            error: {
+              code: -32602,
+              message: "No valid messages found in request parameters",
+            },
+          },
+          400
+        );
+      }
+
+      console.log("📝 Processing messages:", messagesList);
+
+      // Convert A2A messages to Mastra format - FIXED VERSION
+      const mastraMessages = messagesList.map((msg: any) => {
+        // Extract text content from parts
+        const content = msg.parts
+          ?.map((part: any) => {
+            if (part.kind === "text" && part.text) return part.text;
+            if (part.kind === "data" && part.data) return JSON.stringify(part.data);
+            if (part.text) return part.text; // Fallback for direct text
+            return "";
+          })
+          .filter((text: string) => text.trim().length > 0) // Remove empty strings
+          .join("\n") || "";
+
+        console.log(`💬 Message ${msg.role}:`, content);
+
+        return {
+          role: msg.role || "user",
+          content: content,
+        };
+      });
+
+      console.log("🤖 Sending to agent:", mastraMessages);
 
       // Execute agent
       const response = await agent.generate(mastraMessages);
-      const agentText = response.text || "";
+      const agentText = response.text || "I received your message but couldn't generate a response.";
+
+      console.log("✅ Agent response:", agentText);
 
       // Build artifacts array
       const artifacts = [
@@ -81,8 +145,9 @@ export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
         },
       ];
 
-      // Add tool results as artifacts
+      // Add tool results as artifacts if available
       if (response.toolResults && response.toolResults.length > 0) {
+        console.log("🔧 Tool results:", response.toolResults);
         artifacts.push({
           artifactId: randomUUID(),
           name: "ToolResults",
@@ -97,8 +162,8 @@ export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
       const history = [
         ...messagesList.map((msg: any) => ({
           kind: "message",
-          role: msg.role,
-          parts: msg.parts,
+          role: msg.role || "user",
+          parts: msg.parts || [{ kind: "text", text: msg.content || "" }],
           messageId: msg.messageId || randomUUID(),
           taskId: msg.taskId || taskId || randomUUID(),
         })),
@@ -112,7 +177,7 @@ export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
       ];
 
       // Return A2A-compliant response
-      return c.json({
+      const a2aResponse = {
         jsonrpc: "2.0",
         id: requestId,
         result: {
@@ -132,9 +197,13 @@ export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
           history,
           kind: "task",
         },
-      });
+      };
+
+      console.log("📤 Sending A2A response");
+      return c.json(a2aResponse);
+
     } catch (error: any) {
-      console.error("A2A Route Error:", error);
+      console.error("❌ A2A Route Error:", error);
       return c.json(
         {
           jsonrpc: "2.0",
