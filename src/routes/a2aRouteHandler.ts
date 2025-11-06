@@ -4,6 +4,8 @@ import { randomUUID } from "crypto";
 export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
   method: "POST",
   handler: async (c) => {
+    console.log("🔍 A2A Request Received");
+
     try {
       const mastra = c.get("mastra");
       const agentId = c.req.param("agentId");
@@ -12,7 +14,12 @@ export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
       const body = await c.req.json();
       const { jsonrpc, id: requestId, method, params } = body;
 
-      console.log("📨 Received A2A Request:", { agentId, method, params });
+      console.log("📨 Request Details:", {
+        agentId,
+        method,
+        requestId,
+        hasParams: !!params,
+      });
 
       // Validate JSON-RPC 2.0 format
       if (jsonrpc !== "2.0" || !requestId) {
@@ -22,7 +29,8 @@ export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
             id: requestId || null,
             error: {
               code: -32600,
-              message: 'Invalid Request: jsonrpc must be "2.0" and id is required',
+              message:
+                'Invalid Request: jsonrpc must be "2.0" and id is required',
             },
           },
           400
@@ -44,7 +52,7 @@ export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
         );
       }
 
-      // Type-safe agent retrieval
+      // Agent validation
       if (agentId !== "studySyncAgent") {
         return c.json(
           {
@@ -61,147 +69,90 @@ export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
 
       const agent = mastra.getAgent(agentId as "studySyncAgent");
 
-      // Extract messages from params - Telex structure is different
-      const { message, messages, contextId, taskId, configuration } = params || {};
+      // Extract messages from params - CRITICAL FIX HERE
+      const { message, messages, contextId, taskId, configuration } =
+        params || {};
 
-      console.log("🔍 Extracted params:", { message, messages, contextId, taskId });
+      console.log("🔍 Params Analysis:", {
+        hasMessage: !!message,
+        hasMessages: !!messages,
+        contextId,
+        taskId,
+      });
 
-      let messagesList: any[] = [];
-      
-      // Handle Telex message format
-      if (message) {
-        messagesList = [message];
-      } else if (messages && Array.isArray(messages)) {
-        messagesList = messages;
-      } else {
-        // If no messages found in expected locations, check the root level
-        if (params && typeof params === 'object') {
-          // Look for message parts in the params directly
-          const parts = [];
-          if (params.text) parts.push({ kind: "text", text: params.text });
-          if (params.parts && Array.isArray(params.parts)) parts.push(...params.parts);
-          
-          if (parts.length > 0) {
-            messagesList = [{
-              role: "user",
-              parts: parts,
-              messageId: randomUUID()
-            }];
+      let userMessage = "";
+
+      // METHOD 1: Check if message exists with parts (Primary Telex format)
+      if (message && message.parts) {
+        console.log("📝 Processing message.parts structure");
+        userMessage = extractUserMessageFromParts(message.parts);
+      }
+
+      // METHOD 2: Check if messages array exists (Fallback)
+      if (!userMessage && messages && Array.isArray(messages)) {
+        console.log("📝 Processing messages array structure");
+        for (const msg of messages) {
+          if (msg.parts) {
+            const extracted = extractUserMessageFromParts(msg.parts);
+            if (extracted) {
+              userMessage = extracted;
+              break;
+            }
           }
         }
       }
 
-      if (messagesList.length === 0) {
-        return c.json(
-          {
-            jsonrpc: "2.0",
-            id: requestId,
-            error: {
-              code: -32602,
-              message: "No valid messages found in request parameters",
-            },
-          },
-          400
-        );
+      // METHOD 3: Direct text extraction (Last resort)
+      if (!userMessage && message && message.text) {
+        console.log("📝 Processing direct message.text");
+        userMessage = message.text;
       }
 
-      console.log("📝 Processing messages:", messagesList);
+      console.log("💬 Extracted User Message:", userMessage);
 
-      // Convert A2A messages to Mastra format - FIXED VERSION
-      const mastraMessages = messagesList.map((msg: any) => {
-        // Extract text content from parts
-        const content = msg.parts
-          ?.map((part: any) => {
-            if (part.kind === "text" && part.text) return part.text;
-            if (part.kind === "data" && part.data) return JSON.stringify(part.data);
-            if (part.text) return part.text; // Fallback for direct text
-            return "";
-          })
-          .filter((text: string) => text.trim().length > 0) // Remove empty strings
-          .join("\n") || "";
+      // If no message found, use default
+      if (!userMessage) {
+        userMessage = "Hello";
+        console.log("🤖 Using default greeting");
+      }
 
-        console.log(`💬 Message ${msg.role}:`, content);
+      // Convert to Mastra format
+      const mastraMessages = [
+        {
+          role: "user",
+          content: userMessage,
+        },
+      ];
 
-        return {
-          role: msg.role || "user",
-          content: content,
-        };
+      console.log("🤖 Sending to Agent:", {
+        messageLength: userMessage.length,
+        preview: userMessage.substring(0, 100),
       });
-
-      console.log("🤖 Sending to agent:", mastraMessages);
 
       // Execute agent
       const response = await agent.generate(mastraMessages);
-      const agentText = response.text || "I received your message but couldn't generate a response.";
+      const agentText =
+        response.text ||
+        "I received your message but couldn't generate a proper response.";
 
-      console.log("✅ Agent response:", agentText);
+      console.log("✅ Agent Response:", {
+        responseLength: agentText.length,
+        preview: agentText.substring(0, 100),
+        hasToolResults: !!(
+          response.toolResults && response.toolResults.length > 0
+        ),
+      });
 
-      // Build artifacts array
-      const artifacts = [
-        {
-          artifactId: randomUUID(),
-          name: `${agentId}Response`,
-          parts: [{ kind: "text", text: agentText }],
-        },
-      ];
+      // Build A2A-compliant response
+      const responseData = buildA2AResponse(
+        requestId,
+        agentText,
+        contextId || randomUUID(),
+        taskId || randomUUID()
+      );
 
-      // Add tool results as artifacts if available
-      if (response.toolResults && response.toolResults.length > 0) {
-        console.log("🔧 Tool results:", response.toolResults);
-        artifacts.push({
-          artifactId: randomUUID(),
-          name: "ToolResults",
-          parts: response.toolResults.map((result: any) => ({
-            kind: "data",
-            data: result,
-          })),
-        });
-      }
-
-      // Build conversation history
-      const history = [
-        ...messagesList.map((msg: any) => ({
-          kind: "message",
-          role: msg.role || "user",
-          parts: msg.parts || [{ kind: "text", text: msg.content || "" }],
-          messageId: msg.messageId || randomUUID(),
-          taskId: msg.taskId || taskId || randomUUID(),
-        })),
-        {
-          kind: "message",
-          role: "agent",
-          parts: [{ kind: "text", text: agentText }],
-          messageId: randomUUID(),
-          taskId: taskId || randomUUID(),
-        },
-      ];
-
-      // Return A2A-compliant response
-      const a2aResponse = {
-        jsonrpc: "2.0",
-        id: requestId,
-        result: {
-          id: taskId || randomUUID(),
-          contextId: contextId || randomUUID(),
-          status: {
-            state: "completed",
-            timestamp: new Date().toISOString(),
-            message: {
-              messageId: randomUUID(),
-              role: "agent",
-              parts: [{ kind: "text", text: agentText }],
-              kind: "message",
-            },
-          },
-          artifacts,
-          history,
-          kind: "task",
-        },
-      };
-
-      console.log("📤 Sending A2A response");
-      return c.json(a2aResponse);
-
+      console.log("📤 Sending A2A Response");
+      return c.json(responseData);
     } catch (error: any) {
       console.error("❌ A2A Route Error:", error);
       return c.json(
@@ -219,3 +170,141 @@ export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
     }
   },
 });
+
+// CRITICAL: Helper function to extract user message from Telex parts structure
+function extractUserMessageFromParts(parts: any[]): string {
+  if (!Array.isArray(parts)) return "";
+
+  console.log(`🔍 Analyzing ${parts.length} parts`);
+
+  const userMessages: string[] = [];
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    const partKind = part.kind;
+
+    console.log(`📦 Part ${i}: kind=${partKind}`);
+
+    // Handle "data" kind with nested structure (from your Python code)
+    if (partKind === "data" && part.data) {
+      console.log(
+        `🔍 Found data part with data:`,
+        Array.isArray(part.data) ? part.data.length : "non-array"
+      );
+
+      const dataItems = Array.isArray(part.data) ? part.data : [part.data];
+
+      for (const item of dataItems) {
+        if (
+          item &&
+          item.kind === "text" &&
+          item.text &&
+          typeof item.text === "string"
+        ) {
+          const text = item.text.trim();
+          if (text && !isBotResponse(text)) {
+            userMessages.push(text);
+            console.log(
+              `💬 Found user message in data: '${text.substring(0, 50)}...'`
+            );
+          }
+        }
+      }
+    }
+
+    // Handle direct "text" kind
+    if (partKind === "text" && part.text && typeof part.text === "string") {
+      const text = part.text.trim();
+      if (text && !isBotResponse(text)) {
+        userMessages.push(text);
+        console.log(
+          `💬 Found user message in text: '${text.substring(0, 50)}...'`
+        );
+      }
+    }
+  }
+
+  // Return the most recent user message (like your Python code)
+  return userMessages.length > 0 ? userMessages[userMessages.length - 1] : "";
+}
+
+// Helper to filter out bot responses (from your Python code)
+function isBotResponse(text: string): boolean {
+  const textLower = text.toLowerCase();
+  const botIndicators = [
+    "here are some",
+    "steps you can take",
+    "suggestions to help",
+    "advice for",
+    "tips that might help",
+    "consider taking",
+    "you can use",
+    "it's essential to",
+    "contact a healthcare",
+    "rinse with warm salt water",
+    "over-the-counter",
+    "cold compress",
+    "avoid irritating foods",
+    "maintain oral hygiene",
+    "topical anesthetics",
+    "stay hydrated",
+    "see a dentist",
+  ];
+
+  return botIndicators.some(
+    (indicator) =>
+      textLower.startsWith(indicator) || textLower.includes(indicator)
+  );
+}
+
+// Build proper A2A response
+function buildA2AResponse(
+  requestId: string,
+  agentText: string,
+  contextId: string,
+  taskId: string
+) {
+  const messageId = randomUUID();
+  const artifactId = randomUUID();
+
+  const responseMessage = {
+    kind: "message" as const,
+    role: "agent" as const,
+    parts: [
+      {
+        kind: "text" as const,
+        text: agentText,
+      },
+    ],
+    messageId,
+    taskId,
+  };
+
+  return {
+    jsonrpc: "2.0",
+    id: requestId,
+    result: {
+      id: taskId,
+      contextId,
+      status: {
+        state: "completed" as const,
+        timestamp: new Date().toISOString(),
+        message: responseMessage,
+      },
+      artifacts: [
+        {
+          artifactId,
+          name: "studySyncAgentResponse",
+          parts: [
+            {
+              kind: "text" as const,
+              text: agentText,
+            },
+          ],
+        },
+      ],
+      history: [responseMessage],
+      kind: "task" as const,
+    },
+  };
+}
