@@ -28,9 +28,10 @@ export const mastra = new Mastra({
     apiRoutes: [a2aAgentRoute],
   },
   // Add model configurations here
+  /*
   models: {
     "google/gemini-2.0-flash": {
       apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
     },
-  },
+  },*/
 });

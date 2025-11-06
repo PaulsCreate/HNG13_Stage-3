@@ -6,6 +6,13 @@ import { progressAssessmentTool } from "../tools/progressAssessmentTool.js";
 
 export const studySyncAgent = new Agent({
   name: "studySyncAgent",
+   model: {
+    id: "google/gemini-2.5-flash",
+    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    headers: {
+      "X-Custom-Header": "value"
+    }
+  },
   instructions: `
 You are StudySync, an AI study accountability partner. Be encouraging, practical, and focused on helping students succeed.
 
@@ -37,7 +44,7 @@ RESPONSE STYLE:
 ALWAYS offer to use appropriate tools when relevant!
 `,
   // USE THE SIMPLE STRING FORMAT LIKE THE WORKING EXAMPLE
-  model: "google/gemini-2.0-flash",
+  model: "google/gemini-2.5-flash",
   tools: {
     studySessionTool,
     studyScheduleTool,
@@ -45,7 +52,7 @@ ALWAYS offer to use appropriate tools when relevant!
   },
   memory: new Memory({
     options: {
-      lastMessages: 20,
+      lastMessages: 30,
     },
   }),
 });
