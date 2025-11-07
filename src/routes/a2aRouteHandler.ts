@@ -1,196 +1,162 @@
-import { registerApiRoute } from "@mastra/core/server";
-import { randomUUID } from "crypto";
+import { registerApiRoute } from '@mastra/core/server';
+import { randomUUID } from 'crypto';
 
-export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
-  method: "POST",
+export const a2aAgentRoute = registerApiRoute('/a2a/agent/:agentId', {
+  method: 'POST',
   handler: async (c) => {
-    console.log("🚀 A2A ENDPOINT HIT - StudySync Agent");
-
     try {
-      const mastra = c.get("mastra");
-      const agentId = c.req.param("agentId");
+      const mastra = c.get('mastra');
+      const agentId = c.req.param('agentId');
 
       // Parse JSON-RPC 2.0 request
       const body = await c.req.json();
       const { jsonrpc, id: requestId, method, params } = body;
 
-      console.log("📨 Received A2A Request:", {
-        agentId,
-        method,
-        requestId,
-      });
+      console.log("📨 Received A2A Request:", { agentId, method, requestId });
 
       // Validate JSON-RPC 2.0 format
-      if (jsonrpc !== "2.0" || !requestId) {
-        return c.json(
-          {
-            jsonrpc: "2.0",
-            id: requestId || null,
-            error: {
-              code: -32600,
-              message:
-                'Invalid Request: jsonrpc must be "2.0" and id is required',
-            },
-          },
-          400
-        );
+      if (jsonrpc !== '2.0' || !requestId) {
+        return c.json({
+          jsonrpc: '2.0',
+          id: requestId || null,
+          error: {
+            code: -32600,
+            message: 'Invalid Request: jsonrpc must be "2.0" and id is required'
+          }
+        }, 400);
       }
 
+      // Check if method is supported
       if (method !== "message/send") {
-        return c.json(
-          {
-            jsonrpc: "2.0",
-            id: requestId,
-            error: {
-              code: -32601,
-              message: `Method not supported: ${method}. Only 'message/send' is supported.`,
-            },
-          },
-          400
-        );
+        return c.json({
+          jsonrpc: "2.0",
+          id: requestId,
+          error: {
+            code: -32601,
+            message: `Method not supported: ${method}. Only 'message/send' is supported.`
+          }
+        }, 400);
       }
 
-      if (agentId !== "studySyncAgent") {
-        return c.json(
-          {
-            jsonrpc: "2.0",
-            id: requestId,
-            error: {
-              code: -32602,
-              message: `Agent '${agentId}' not found. Available agent: studySyncAgent`,
-            },
-          },
-          404
-        );
+      const agent = mastra.getAgent(agentId);
+      if (!agent) {
+        return c.json({
+          jsonrpc: '2.0',
+          id: requestId,
+          error: {
+            code: -32602,
+            message: `Agent '${agentId}' not found`
+          }
+        }, 404);
       }
 
-      const agent = mastra.getAgent(agentId as "studySyncAgent");
+      // Extract messages from params (following your template)
+      const { message, messages, contextId, taskId, metadata } = params || {};
 
-      // Extract message data (simplified for now)
-      const userMessage = params?.message?.parts?.[0]?.text || "Hello";
-      const contextId = params?.message?.taskId || randomUUID();
-      const taskId = params?.message?.messageId || randomUUID();
+      let messagesList = [];
+      if (message) {
+        messagesList = [message];
+      } else if (messages && Array.isArray(messages)) {
+        messagesList = messages;
+      }
 
-      console.log("💬 User message:", userMessage);
-      console.log("🔑 Context ID:", contextId, "Task ID:", taskId);
+      console.log("📝 Processing messages:", messagesList.length);
 
-      // Execute agent with tools
-      console.log("🤖 Processing with StudySync agent...");
-      const response = await agent.run(
-        [{ role: "user", content: userMessage }],
-        {
-          tools: [
-            "studySessionTool",
-            "studyScheduleTool",
-            "progressAssessmentTool",
-          ],
-          enableToolUsage: true,
-        }
-      );
+      // Convert A2A messages to Mastra format (following your template)
+      const mastraMessages = messagesList.map((msg) => ({
+        role: msg.role,
+        content: msg.parts?.map((part) => {
+          if (part.kind === 'text') return part.text;
+          if (part.kind === 'data') return JSON.stringify(part.data);
+          return '';
+        }).join('\n') || ''
+      }));
 
-      console.log("🔧 Full agent response:", JSON.stringify(response, null, 2));
+      console.log("🤖 Sending to agent:", mastraMessages);
 
-      // Extract response text and tool results
-      const agentText = response.text || "I'm here to help with your studies!";
-      const toolResults = response.toolResults || [];
+      // Execute agent (following your template)
+      const response = await agent.generate(mastraMessages);
+      const agentText = response.text || 'Hello! I\'m StudySync, your AI study partner. How can I help you with your studies today?';
 
-      console.log("✅ Agent text:", agentText);
-      console.log("🛠️ Tool results:", toolResults.length);
+      console.log("✅ Agent response:", agentText);
 
-      // Build the EXACT response format Telex expects
-      const messageId = randomUUID();
-
-      // Main response message
-      const responseMessage = {
-        kind: "message",
-        role: "agent",
-        parts: [
-          {
-            kind: "text",
-            text: agentText,
-          },
-        ],
-        messageId: messageId,
-        taskId: taskId,
-      };
-
-      // Build artifacts array (CRITICAL - Telex expects this)
+      // Build artifacts array (following your template)
       const artifacts = [
         {
           artifactId: randomUUID(),
           name: `${agentId}Response`,
-          parts: [
-            {
-              kind: "text",
-              text: agentText,
-            },
-          ],
-        },
+          parts: [{ kind: 'text', text: agentText }]
+        }
       ];
 
-      // Add tool results as separate artifacts (like the weather example)
-      if (toolResults.length > 0) {
+      // Add tool results as artifacts (following your template)
+      if (response.toolResults && response.toolResults.length > 0) {
+        console.log("🔧 Tool results:", response.toolResults.length);
         artifacts.push({
           artifactId: randomUUID(),
-          name: "ToolResults",
-          parts: toolResults.map((result: any) => ({
-            kind: "data",
-            data: result,
-          })),
+          name: 'ToolResults',
+          parts: response.toolResults.map((result) => ({
+            kind: 'data',
+            data: result
+          }))
         });
       }
 
-      // Build history (optional but recommended)
+      // Build conversation history (following your template)
       const history = [
+        ...messagesList.map((msg) => ({
+          kind: 'message',
+          role: msg.role,
+          parts: msg.parts,
+          messageId: msg.messageId || randomUUID(),
+          taskId: msg.taskId || taskId || randomUUID(),
+        })),
         {
-          kind: "message",
-          role: "user",
-          parts: [
-            {
-              kind: "text",
-              text: userMessage,
-            },
-          ],
+          kind: 'message',
+          role: 'agent',
+          parts: [{ kind: 'text', text: agentText }],
           messageId: randomUUID(),
-          taskId: taskId,
-        },
-        responseMessage,
+          taskId: taskId || randomUUID(),
+        }
       ];
 
-      // Final A2A-compliant response
+      // Return A2A-compliant response (following your template)
       const a2aResponse = {
-        jsonrpc: "2.0",
+        jsonrpc: '2.0',
         id: requestId,
         result: {
-          id: taskId,
-          contextId: contextId,
+          id: taskId || randomUUID(),
+          contextId: contextId || randomUUID(),
           status: {
-            state: "completed",
+            state: 'completed',
             timestamp: new Date().toISOString(),
-            message: responseMessage,
+            message: {
+              messageId: randomUUID(),
+              role: 'agent',
+              parts: [{ kind: 'text', text: agentText }],
+              kind: 'message'
+            }
           },
-          artifacts: artifacts, // This is crucial!
-          history: history,
-          kind: "task",
-        },
+          artifacts,
+          history,
+          kind: 'task'
+        }
       };
 
-      console.log("📤 Sending A2A response with artifacts:", artifacts.length);
+      console.log("📤 Sending A2A response");
       return c.json(a2aResponse);
+
     } catch (error: any) {
       console.error("❌ A2A Route Error:", error);
-      return c.json(
-        {
-          jsonrpc: "2.0",
-          id: null,
-          error: {
-            code: -32603,
-            message: "Internal error",
-            data: { details: error.message },
-          },
-        },
-        500
-      );
+      return c.json({
+        jsonrpc: '2.0',
+        id: null,
+        error: {
+          code: -32603,
+          message: 'Internal error',
+          data: { details: error.message }
+        }
+      }, 500);
     }
-  },
+  }
 });
