@@ -25,7 +25,7 @@ export const mastra = new Mastra({
       openAPIDocs: true,
       swaggerUI: true,
     },
-    apiRoutes: [a2aAgentRoute],
+    apiRoutes: [a2aAgentRoute, healthRoute],
   },
   // Add model configurations here
   /*
