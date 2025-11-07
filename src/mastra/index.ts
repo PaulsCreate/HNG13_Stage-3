@@ -2,7 +2,7 @@ import "dotenv/config";
 import { Mastra } from "@mastra/core/mastra";
 import { PinoLogger } from "@mastra/loggers";
 import { LibSQLStore } from "@mastra/libsql";
-import { a2aAgentRoute, healthRoute } from "../routes/a2aRouteHandler.js";
+import { a2aAgentRoute} from "../routes/a2aRouteHandler.js";
 import { studySyncAgent } from "./agents/studySyncAgent.js";
 
 // Add model configuration at the Mastra level
@@ -25,7 +25,7 @@ export const mastra = new Mastra({
       openAPIDocs: true,
       swaggerUI: true,
     },
-    apiRoutes: [a2aAgentRoute, healthRoute],
+    apiRoutes: [a2aAgentRoute],
   },
   // Add model configurations here
   /*
